@@ -1,21 +1,26 @@
-import { state, persist, getActiveStudy } from './state.js';
-import { speak } from './utils.js';
+import { state, persist, getActiveStudy, getFilteredStudyCards, getWeakCardScore, setWeakCardScore, isFavoriteCard, toggleFavoriteCard } from './state.js';
+import { speak, shuffle } from './utils.js';
 
 export function renderFlashcards(container) {
   const db = getActiveStudy();
-  if (!db?.cards?.length) return (container.innerHTML = '<p>No cards available.</p>');
+  if (!db) return (container.innerHTML = '<div class="empty-state">No study database selected.</div>');
+
+  let cards = getFilteredStudyCards(db);
+  if (!cards.length) return (container.innerHTML = '<div class="empty-state">No cards match the current filters.</div>');
+
   let idx = 0;
   let flipped = false;
-  const cards = db.cards;
   let autoplay;
   let touchStartX = 0;
+  let queuedReviews = 0;
+  let sessionCards = [...cards];
 
   container.innerHTML = `
     <div class="card" id="flashcard" tabindex="0" aria-label="Flashcard"></div>
     <div class="controls">
       <button id="prevBtn">Prev</button><button id="flipBtn">Flip</button><button id="nextBtn">Next</button>
       <button id="shuffleBtn">Shuffle</button><button id="reverseBtn">Reverse</button>
-      <button id="starBtn">⭐</button><button id="speakBtn">🔊</button>
+      <button id="starBtn">☆</button><button id="speakBtn">🔊</button>
       <button id="autoBtn">Autoplay</button>
       <span class="badge" id="progressPill"></span>
     </div>
@@ -25,29 +30,61 @@ export function renderFlashcards(container) {
       <button data-rate="good">Good</button>
       <button data-rate="easy">Easy</button>
     </div>
-    <p class="sr-note">Tip: Arrow keys navigate, space flips, swipe on mobile.</p>`;
+    <p class="sr-note" id="flashHint">Tip: Arrow keys navigate, space flips, swipe on mobile.</p>`;
 
   const cardEl = container.querySelector('#flashcard');
+  const hintEl = container.querySelector('#flashHint');
+
+  const currentCard = () => sessionCards[idx];
+
+  const currentSideLang = () => {
+    const frontSide = state.preferences.reverse ? 'translation' : 'term';
+    const side = flipped ? (frontSide === 'term' ? 'translation' : 'term') : frontSide;
+    return side === 'term' ? state.preferences.learningLang : state.preferences.translationLang;
+  };
 
   const redraw = () => {
-    const c = cards[idx];
-    const front = state.preferences.reverse ? c.translation : c.term;
-    const back = state.preferences.reverse ? c.term : c.translation;
-    cardEl.innerHTML = `<div>${flipped ? back : front}</div><div class="meta">${c.example_sentence || ''}</div>`;
-    container.querySelector('#progressPill').textContent = `${idx + 1}/${cards.length}`;
+    cards = getFilteredStudyCards(db);
+    if (!cards.length) {
+      container.innerHTML = '<div class="empty-state">No cards match the current filters.</div>';
+      return;
+    }
+    if (!sessionCards.length) sessionCards = [...cards];
+    idx = Math.max(0, Math.min(idx, sessionCards.length - 1));
+    const card = currentCard();
+    const front = state.preferences.reverse ? card.translation : card.term;
+    const back = state.preferences.reverse ? card.term : card.translation;
+    const weakScore = getWeakCardScore(db.id, card);
+    const starred = isFavoriteCard(db.id, card);
+    cardEl.innerHTML = `<div>${flipped ? back : front}</div><div class="meta">${card.example_sentence || ''}${card.difficulty ? ` • ${card.difficulty}` : ''}${weakScore ? ` • review priority ${weakScore}` : ''}</div>`;
+    container.querySelector('#starBtn').textContent = starred ? '⭐' : '☆';
+    container.querySelector('#progressPill').textContent = `Card ${idx + 1}/${sessionCards.length}${queuedReviews ? ` • ${queuedReviews} queued` : ''}`;
   };
 
   const step = (n) => {
-    idx = (idx + n + cards.length) % cards.length;
+    idx = (idx + n + sessionCards.length) % sessionCards.length;
     flipped = false;
     redraw();
   };
 
+  const queueReview = (card, rating) => {
+    if (rating === 'again') {
+      sessionCards.splice(Math.min(idx + 1, sessionCards.length), 0, card);
+      queuedReviews++;
+    }
+    if (rating === 'hard') {
+      sessionCards.splice(Math.min(idx + 3, sessionCards.length), 0, card);
+      queuedReviews++;
+    }
+  };
+
   const rateCard = (rating) => {
-    const id = cards[idx].id;
-    const prev = state.weakCards[id] || 0;
+    const card = currentCard();
+    const prev = getWeakCardScore(db.id, card);
     const delta = { again: 2, hard: 1, good: -1, easy: -2 }[rating] ?? 0;
-    state.weakCards[id] = Math.max(0, prev + delta);
+    const nextWeak = setWeakCardScore(db.id, card, prev + delta);
+    queueReview(card, rating);
+    hintEl.textContent = `${rating[0].toUpperCase()}${rating.slice(1)} saved. Review priority is now ${nextWeak || 0}.`;
     persist();
     step(1);
   };
@@ -58,12 +95,33 @@ export function renderFlashcards(container) {
   container.querySelector('#nextBtn').onclick = () => step(1);
   container.querySelector('#flipBtn').onclick = () => { flipped = !flipped; redraw(); };
   container.querySelector('#reverseBtn').onclick = () => { state.preferences.reverse = !state.preferences.reverse; persist(); redraw(); };
-  container.querySelector('#shuffleBtn').onclick = () => { cards.sort(() => Math.random() - 0.5); idx = 0; redraw(); };
-  container.querySelector('#starBtn').onclick = () => { state.favorites.has(cards[idx].id) ? state.favorites.delete(cards[idx].id) : state.favorites.add(cards[idx].id); persist(); };
-  container.querySelector('#speakBtn').onclick = () => speak(flipped ? cards[idx].translation : cards[idx].term);
+  container.querySelector('#shuffleBtn').onclick = () => {
+    sessionCards = shuffle(sessionCards);
+    idx = 0;
+    flipped = false;
+    hintEl.textContent = 'Deck reshuffled.';
+    redraw();
+  };
+  container.querySelector('#starBtn').onclick = () => {
+    const starred = toggleFavoriteCard(db.id, currentCard());
+    hintEl.textContent = starred ? 'Card starred.' : 'Card unstarred.';
+    persist();
+    redraw();
+  };
+  container.querySelector('#speakBtn').onclick = () => {
+    const card = currentCard();
+    const text = flipped ? (state.preferences.reverse ? card.term : card.translation) : (state.preferences.reverse ? card.translation : card.term);
+    speak(text, { lang: currentSideLang() });
+  };
   container.querySelector('#autoBtn').onclick = () => {
-    if (autoplay) { clearInterval(autoplay); autoplay = null; return; }
+    if (autoplay) {
+      clearInterval(autoplay);
+      autoplay = null;
+      hintEl.textContent = 'Autoplay stopped.';
+      return;
+    }
     autoplay = setInterval(() => step(1), 2500);
+    hintEl.textContent = 'Autoplay started.';
   };
   container.querySelectorAll('[data-rate]').forEach((btn) => btn.onclick = () => rateCard(btn.dataset.rate));
 

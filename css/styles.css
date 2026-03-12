@@ -43,8 +43,9 @@ button:hover, .file-label:hover, .import-progress-btn:hover { border-color: var(
 .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 1rem; padding: 1rem; }
 .sidebar section + section { margin-top: 1rem; }
 .db-list { display: grid; gap: .45rem; max-height: 300px; overflow: auto; }
-.db-item { border: 1px solid var(--border); border-radius: .5rem; padding: .4rem .6rem; display:flex;justify-content:space-between; }
+.db-item { border: 1px solid var(--border); border-radius: .5rem; padding: .4rem .6rem; display:flex;justify-content:space-between;gap:.6rem;align-items:flex-start; }
 .db-item.active { border-color: var(--accent); }
+.db-actions { display:flex; gap:.35rem; flex-wrap: wrap; justify-content:flex-end; }
 .mode-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .7rem; }
 .mode-tabs button.active { background: var(--accent); color: #fff; border-color: transparent; }
 .status { padding: .6rem .75rem; border: 1px dashed var(--border); border-radius: .7rem; color: var(--muted); margin-bottom: .8rem; }
@@ -57,6 +58,7 @@ button:hover, .file-label:hover, .import-progress-btn:hover { border-color: var(
 }
 .card .meta { font-size: .85rem; opacity: .85; }
 .controls, .inline-grid { display:flex; gap:.5rem; flex-wrap: wrap; margin-top: .8rem; }
+.controls > *, .inline-grid > * { flex: 1 1 160px; }
 input, select, textarea {
   width: 100%; padding: .55rem .6rem; border-radius: .5rem;
   border: 1px solid var(--border); background: transparent; color: var(--text);
@@ -68,6 +70,7 @@ input, select, textarea {
 .choice { display:block; margin:.35rem 0; }
 .badge { font-size:.75rem; border:1px solid var(--border); border-radius:999px; padding:.1rem .5rem; color: var(--muted); }
 .empty-state { border:1px dashed var(--border); border-radius:.8rem; padding:1.2rem; text-align:center; color: var(--muted); }
+.compact-empty { padding:.8rem; }
 .match-board { display:grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap:.5rem; }
 .tile { border:1px solid var(--border); border-radius:.7rem; padding:.6rem; text-align:center; cursor:pointer; }
 .tile.selected { outline:2px solid var(--accent); }

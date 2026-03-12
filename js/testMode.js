@@ -1,9 +1,9 @@
-import { getActiveStudy } from './state.js';
+import { getActiveStudy, filterStudyCards, state } from './state.js';
 import { shuffle, fuzzyMatch } from './utils.js';
 
 export function renderTest(container) {
   const db = getActiveStudy();
-  if (!db?.cards?.length) return (container.innerHTML = '<p>No study cards loaded.</p>');
+  if (!db?.cards?.length) return (container.innerHTML = '<div class="empty-state">No study cards loaded.</div>');
 
   container.innerHTML = `
     <div class="inline-grid">
@@ -13,19 +13,30 @@ export function renderTest(container) {
     </div>
     <div id="testArea"></div>`;
 
-  container.querySelector('#generateBtn').onclick = () => {
+  const generate = () => {
     const count = +container.querySelector('#qCount').value;
     const diff = container.querySelector('#difficulty').value;
-    const source = db.cards.filter((c) => !diff || c.difficulty === diff);
+    const basePool = filterStudyCards(db.cards, {
+      dbId: db.id,
+      search: state.filters.search,
+      favoritesOnly: state.filters.favoritesOnly,
+      sort: ''
+    });
+    const source = diff ? basePool.filter((card) => card.difficulty === diff) : basePool;
+    if (!source.length) {
+      container.querySelector('#testArea').innerHTML = '<div class="empty-state">No cards available for this test setup.</div>';
+      return;
+    }
+
     const sample = shuffle(source).slice(0, Math.min(count, source.length));
     const questions = sample.map((card, i) => {
-      const type = ['mc','tf','typed'][i % 3];
+      const type = ['mc', 'tf', 'typed'][i % 3];
       if (type === 'mc') {
-        const choices = shuffle([card.translation, ...shuffle(db.cards.filter((c) => c.id !== card.id)).slice(0, 3).map((x) => x.translation)]);
-        return `<div class="question" data-answer="${card.translation}" data-type="mc"><p>${card.term}</p>${choices.map((c) => `<label class='choice'><input type='radio' name='q${i}' value='${c}'>${c}</label>`).join('')}</div>`;
+        const choices = shuffle([card.translation, ...shuffle(db.cards.filter((item) => item.id !== card.id)).slice(0, 3).map((item) => item.translation)]);
+        return `<div class="question" data-answer="${card.translation}" data-type="mc"><p>${card.term}</p>${choices.map((choice) => `<label class='choice'><input type='radio' name='q${i}' value='${choice}'>${choice}</label>`).join('')}</div>`;
       }
       if (type === 'tf') {
-        const wrong = shuffle(db.cards.filter((x) => x.id !== card.id))[0]?.translation || 'n/a';
+        const wrong = shuffle(db.cards.filter((item) => item.id !== card.id))[0]?.translation || 'n/a';
         const shown = Math.random() > 0.5 ? card.translation : wrong;
         const answer = shown === card.translation ? 'true' : 'false';
         return `<div class="question" data-answer="${answer}" data-type="tf"><p>${card.term} = ${shown}</p><label><input type='radio' name='q${i}' value='true'>True</label><label><input type='radio' name='q${i}' value='false'>False</label></div>`;
@@ -39,16 +50,18 @@ export function renderTest(container) {
       const blocks = [...container.querySelectorAll('.question')];
       let score = 0;
       const mistakes = [];
-      blocks.forEach((b, i) => {
-        const ans = b.dataset.answer;
-        const type = b.dataset.type;
-        let val = '';
-        if (type === 'typed') val = b.querySelector('input').value;
-        else val = b.querySelector('input:checked')?.value || '';
-        const ok = type === 'typed' ? fuzzyMatch(val, ans) : val === ans;
-        if (ok) score++; else mistakes.push({ q: i + 1, expected: ans, got: val || '(blank)' });
+      blocks.forEach((block, i) => {
+        const answer = block.dataset.answer;
+        const type = block.dataset.type;
+        const value = type === 'typed' ? block.querySelector('input').value : block.querySelector('input:checked')?.value || '';
+        const ok = type === 'typed' ? fuzzyMatch(value, answer) : value === answer;
+        if (ok) score++;
+        else mistakes.push({ q: i + 1, expected: answer, got: value || '(blank)' });
       });
-      container.querySelector('#result').innerHTML = `<h3>Score: ${score}/${blocks.length}</h3><ul>${mistakes.map((m) => `<li>Q${m.q}: expected ${m.expected}, got ${m.got}</li>`).join('')}</ul>`;
+      container.querySelector('#result').innerHTML = `<h3>Score: ${score}/${blocks.length}</h3><ul>${mistakes.map((mistake) => `<li>Q${mistake.q}: expected ${mistake.expected}, got ${mistake.got}</li>`).join('')}</ul>`;
     };
   };
+
+  container.querySelector('#generateBtn').onclick = generate;
+  generate();
 }
