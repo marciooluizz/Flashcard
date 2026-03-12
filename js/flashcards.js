@@ -5,8 +5,33 @@ export function renderFlashcards(container) {
   const db = getActiveStudy();
   if (!db) return (container.innerHTML = '<div class="empty-state">No study database selected.</div>');
 
+  const renderNoCards = () => {
+    container.innerHTML = `<div class="empty-state">
+      <h3>No cards to show</h3>
+      <p>No cards match the current filters for <strong>${db.name}</strong>.</p>
+      <div class="controls">
+        <button id="clearFlashFilters">Clear filters</button>
+      </div>
+    </div>`;
+    container.querySelector('#clearFlashFilters')?.addEventListener('click', () => {
+      state.filters.search = '';
+      state.filters.difficulty = '';
+      state.filters.favoritesOnly = false;
+      state.filters.sort = '';
+      document.querySelector('#searchInput').value = '';
+      document.querySelector('#difficultyFilter').value = '';
+      document.querySelector('#favoritesOnly').checked = false;
+      document.querySelector('#sortFilter').value = '';
+      persist();
+      renderFlashcards(container);
+    });
+  };
+
   let cards = getFilteredStudyCards(db);
-  if (!cards.length) return (container.innerHTML = '<div class="empty-state">No cards match the current filters.</div>');
+  if (!cards.length) {
+    renderNoCards();
+    return;
+  }
 
   let idx = 0;
   let flipped = false;
@@ -46,12 +71,17 @@ export function renderFlashcards(container) {
   const redraw = () => {
     cards = getFilteredStudyCards(db);
     if (!cards.length) {
-      container.innerHTML = '<div class="empty-state">No cards match the current filters.</div>';
+      renderNoCards();
       return;
     }
     if (!sessionCards.length) sessionCards = [...cards];
     idx = Math.max(0, Math.min(idx, sessionCards.length - 1));
-    const card = currentCard();
+    let card = currentCard();
+    if (!card) {
+      sessionCards = [...cards];
+      idx = 0;
+      card = currentCard();
+    }
     const front = state.preferences.reverse ? card.translation : card.term;
     const back = state.preferences.reverse ? card.term : card.translation;
     const weakScore = getWeakCardScore(db.id, card);

@@ -45,20 +45,40 @@ function renderMode() {
   setStatus('Ready');
 }
 
-async function handleImport(files, type) {
+async function handleImport(files, type, inputEl) {
   const list = [...files];
   if (!list.length) return;
+
+  const imported = [];
+  const skipped = [];
+
   try {
     for (const file of list) {
-      if (type === 'study') state.studyDBs.push(await parseStudyFile(file));
-      else state.practiceDBs.push(await parsePracticeFile(file));
+      const parsed = type === 'study' ? await parseStudyFile(file) : await parsePracticeFile(file);
+      const size = type === 'study' ? parsed.cards.length : parsed.questions.length;
+      if (!size) {
+        skipped.push(`${file.name} (no valid ${type === 'study' ? 'cards' : 'questions'} found)`);
+        continue;
+      }
+      imported.push(parsed);
+      if (type === 'study') state.studyDBs.push(parsed);
+      else state.practiceDBs.push(parsed);
     }
-    if (type === 'study' && !state.activeStudyId) state.activeStudyId = state.studyDBs[0]?.id || null;
-    if (type === 'practice' && !state.activePracticeId) state.activePracticeId = state.practiceDBs[0]?.id || null;
-    setStatus(`Imported ${list.length} ${type} file(s) successfully.`);
+
+    if (imported.length) {
+      const latest = imported[imported.length - 1];
+      if (type === 'study') state.activeStudyId = latest.id;
+      if (type === 'practice') state.activePracticeId = latest.id;
+      setStatus(`Imported ${imported.length} ${type} file(s) successfully.${skipped.length ? ` Skipped: ${skipped.join(', ')}` : ''}`);
+    } else {
+      setStatus(`Import finished, but no valid ${type === 'study' ? 'cards' : 'questions'} were found.${skipped.length ? ` Skipped: ${skipped.join(', ')}` : ''}`);
+    }
   } catch (err) {
     setStatus(`Import failed: ${err.message}`);
+  } finally {
+    if (inputEl) inputEl.value = '';
   }
+
   persist();
   renderDBList();
   renderMode();
@@ -96,8 +116,8 @@ function bindUI() {
     persist();
     renderMode();
   }));
-  document.querySelector('#studyImportInput').onchange = (e) => handleImport(e.target.files, 'study');
-  document.querySelector('#practiceImportInput').onchange = (e) => handleImport(e.target.files, 'practice');
+  document.querySelector('#studyImportInput').onchange = (e) => handleImport(e.target.files, 'study', e.target);
+  document.querySelector('#practiceImportInput').onchange = (e) => handleImport(e.target.files, 'practice', e.target);
   document.querySelector('#mergeSelectedBtn').onclick = mergeSelected;
   document.querySelector('#searchInput').oninput = (e) => { state.filters.search = e.target.value; persist(); renderMode(); };
   document.querySelector('#difficultyFilter').onchange = (e) => { state.filters.difficulty = e.target.value; persist(); renderMode(); };
