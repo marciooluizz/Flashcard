@@ -1,5 +1,5 @@
 import { getActiveStudy, filterStudyCards, state } from './state.js';
-import { shuffle } from './utils.js';
+import { escapeHtml, shuffle } from './utils.js';
 
 export function renderMatchGame(container) {
   const db = getActiveStudy();
@@ -33,7 +33,7 @@ export function renderMatchGame(container) {
     let first;
     let matched = 0;
 
-    container.querySelector('#matchArea').innerHTML = `<h3>Match Game</h3><p>Tap a term and translation pair.</p><div class='match-board'>${shuffle([...terms, ...defs]).map((tile) => `<button class='tile' data-key='${tile.key}' data-side='${tile.side}'>${tile.text}</button>`).join('')}</div><p id='gameStatus'>Matched 0/${cards.length}</p>`;
+    container.querySelector('#matchArea').innerHTML = `<h3>Match Game</h3><p>Tap a term and translation pair.</p><div class='match-board'>${shuffle([...terms, ...defs]).map((tile) => `<button class='tile' data-key='${tile.key}' data-side='${tile.side}'>${escapeHtml(tile.text)}</button>`).join('')}</div><p id='gameStatus'>Matched 0/${cards.length}</p>`;
     container.querySelectorAll('.tile').forEach((tile) => {
       tile.onclick = () => {
         if (tile.disabled) return;

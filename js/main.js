@@ -6,6 +6,7 @@ import { renderLearn } from './learn.js';
 import { renderTest } from './testMode.js';
 import { renderPractice } from './practiceMode.js';
 import { renderMatchGame } from './game.js';
+import { escapeHtml } from './utils.js';
 
 const modeContainer = document.querySelector('#modeContainer');
 
@@ -28,7 +29,7 @@ function renderDashboard() {
     <div class='kpi'><strong>${weakCount}</strong><br>Weak Cards</div>
   </div>
   <div class='grid-2' style='margin-top:1rem;'>
-    <section class='panel'><h3>Folder View</h3><ul>${state.studyDBs.map((d) => `<li>${d.name} (${d.cards.length})</li>`).join('') || '<li>No study databases</li>'}</ul></section>
+    <section class='panel'><h3>Folder View</h3><ul>${state.studyDBs.map((d) => `<li>${escapeHtml(d.name)} (${d.cards.length})</li>`).join('') || '<li>No study databases</li>'}</ul></section>
     <section class='panel'><h3>Recent Activity</h3><p>Last mode: ${progress.lastMode || 'n/a'}</p><p>Cards seen: ${progress.seen || 0}</p><p>Current streak: ${progress.streak || 0}</p></section>
   </div>`;
 }

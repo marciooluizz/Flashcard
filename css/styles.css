@@ -81,3 +81,6 @@ input, select, textarea {
 }
 
 .sr-note{color:var(--muted);font-size:.85rem;margin-top:.5rem;}
+
+.learn-prompt { line-height: 1.5; }
+.learn-prompt-phrase strong { text-decoration: underline; font-weight: 800; }

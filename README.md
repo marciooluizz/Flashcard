@@ -12,13 +12,14 @@ LinguaDeck is a polished, local-first, Quizlet-inspired language-learning web ap
   - flip, shuffle, prev/next, reverse direction
   - autoplay, star cards, keyboard shortcuts
   - touch swipe support on mobile
-  - text-to-speech
+  - text-to-speech with auto language detection defaults
   - confidence rating buttons (Again/Hard/Good/Easy)
 - Learn mode:
   - adaptive retry of missed cards
   - weighted weak-card prioritization
-  - mixed typed + multiple-choice prompts
+  - selectable multiple-choice / writing / mixed prompts
   - typo-tolerant answer checking with accent normalization
+  - phrase-in-context prompts using example_sentence/example_translation in both directions
   - streak + accuracy tracking
 - Test mode:
   - generated mixed quiz (MC/TF/typed)

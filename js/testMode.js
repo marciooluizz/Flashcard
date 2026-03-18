@@ -1,5 +1,5 @@
 import { getActiveStudy, filterStudyCards, state } from './state.js';
-import { shuffle, fuzzyMatch } from './utils.js';
+import { escapeAttr, escapeHtml, shuffle, fuzzyMatch } from './utils.js';
 
 export function renderTest(container) {
   const db = getActiveStudy();
@@ -33,15 +33,15 @@ export function renderTest(container) {
       const type = ['mc', 'tf', 'typed'][i % 3];
       if (type === 'mc') {
         const choices = shuffle([card.translation, ...shuffle(db.cards.filter((item) => item.id !== card.id)).slice(0, 3).map((item) => item.translation)]);
-        return `<div class="question" data-answer="${card.translation}" data-type="mc"><p>${card.term}</p>${choices.map((choice) => `<label class='choice'><input type='radio' name='q${i}' value='${choice}'>${choice}</label>`).join('')}</div>`;
+        return `<div class="question" data-answer="${escapeAttr(card.translation)}" data-type="mc"><p>${escapeHtml(card.term)}</p>${choices.map((choice) => `<label class='choice'><input type='radio' name='q${i}' value='${escapeAttr(choice)}'>${escapeHtml(choice)}</label>`).join('')}</div>`;
       }
       if (type === 'tf') {
         const wrong = shuffle(db.cards.filter((item) => item.id !== card.id))[0]?.translation || 'n/a';
         const shown = Math.random() > 0.5 ? card.translation : wrong;
         const answer = shown === card.translation ? 'true' : 'false';
-        return `<div class="question" data-answer="${answer}" data-type="tf"><p>${card.term} = ${shown}</p><label><input type='radio' name='q${i}' value='true'>True</label><label><input type='radio' name='q${i}' value='false'>False</label></div>`;
+        return `<div class="question" data-answer="${answer}" data-type="tf"><p>${escapeHtml(card.term)} = ${escapeHtml(shown)}</p><label><input type='radio' name='q${i}' value='true'>True</label><label><input type='radio' name='q${i}' value='false'>False</label></div>`;
       }
-      return `<div class="question" data-answer="${card.translation}" data-type="typed"><p>${card.term}</p><input type='text' name='q${i}'></div>`;
+      return `<div class="question" data-answer="${escapeAttr(card.translation)}" data-type="typed"><p>${escapeHtml(card.term)}</p><input type='text' name='q${i}'></div>`;
     });
 
     container.querySelector('#testArea').innerHTML = `${questions.join('')}<button id='submitTest'>Submit</button><button id='printBtn'>Print</button><div id='result'></div>`;
@@ -58,7 +58,7 @@ export function renderTest(container) {
         if (ok) score++;
         else mistakes.push({ q: i + 1, expected: answer, got: value || '(blank)' });
       });
-      container.querySelector('#result').innerHTML = `<h3>Score: ${score}/${blocks.length}</h3><ul>${mistakes.map((mistake) => `<li>Q${mistake.q}: expected ${mistake.expected}, got ${mistake.got}</li>`).join('')}</ul>`;
+      container.querySelector('#result').innerHTML = `<h3>Score: ${score}/${blocks.length}</h3><ul>${mistakes.map((mistake) => `<li>Q${mistake.q}: expected ${escapeHtml(mistake.expected)}, got ${escapeHtml(mistake.got)}</li>`).join('')}</ul>`;
     };
   };
 

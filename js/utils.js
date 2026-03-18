@@ -1,5 +1,17 @@
 export const normalize = (v = '') => String(v).normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
 
+export function escapeHtml(value = '') {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[ch] || ch));
+}
+
+export const escapeAttr = escapeHtml;
+
 export const fuzzyMatch = (a, b) => {
   const x = normalize(a), y = normalize(b);
   if (!x || !y) return false;
@@ -36,10 +48,14 @@ function detectLanguage(text = '') {
   const value = normalize(raw);
   if (!value) return null;
 
-  if (/[¿¡ñü]/i.test(raw) || /\b(hola|gracias|adios|comer|hablar|porque|como|quiero|libro)\b/i.test(value)) return 'es-ES';
+  if (/[ぁ-ゖァ-ヺ一-龯]/.test(raw)) return 'ja-JP';
+  if (/[¿¡ñü]/i.test(raw) || /\b(hola|gracias|adios|comer|hablar|porque|como|quiero|libro|vacaciones)\b/i.test(value)) return 'es-ES';
   if (/[ãõç]/i.test(raw) || /\b(ola|obrigado|livro|comer|falar|voce|estou|aprender)\b/i.test(value)) return 'pt-BR';
-  if (/[àâçéèêëîïôùûüœ]/i.test(raw) || /\b(bonjour|merci|livre|manger|parler|avec|pour)\b/i.test(value)) return 'fr-FR';
-  if (/\b(hello|book|eat|learn|speak|with|from|the|and)\b/i.test(value)) return 'en-US';
+  if (/[àâçéèêëîïôùûüœ]/i.test(raw) || /\b(bonjour|merci|livre|manger|parler|avec|pour|vacances)\b/i.test(value)) return 'fr-FR';
+  if (/[äöüß]/i.test(raw) || /\b(hallo|danke|buch|essen|sprechen|lernen|urlaub|entspannt)\b/i.test(value)) return 'de-DE';
+  if (/\b(hallo|dankjewel|boek|eten|leren|spreken|vakantie|ontspannen)\b/i.test(value)) return 'nl-NL';
+  if (/[àèéìíîòóù]/i.test(raw) || /\b(ciao|grazie|libro|mangiare|parlare|imparare|vacanza)\b/i.test(value)) return 'it-IT';
+  if (/\b(hello|book|eat|learn|speak|with|from|the|and|vacation|relaxed)\b/i.test(value)) return 'en-US';
   return null;
 }
 

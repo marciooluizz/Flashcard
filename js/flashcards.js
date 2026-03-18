@@ -1,5 +1,5 @@
 import { state, persist, getActiveStudy, getFilteredStudyCards, getWeakCardScore, setWeakCardScore, isFavoriteCard, toggleFavoriteCard } from './state.js';
-import { speak, shuffle } from './utils.js';
+import { escapeHtml, speak, shuffle } from './utils.js';
 
 export function renderFlashcards(container) {
   const db = getActiveStudy();
@@ -86,7 +86,7 @@ export function renderFlashcards(container) {
     const back = state.preferences.reverse ? card.term : card.translation;
     const weakScore = getWeakCardScore(db.id, card);
     const starred = isFavoriteCard(db.id, card);
-    cardEl.innerHTML = `<div>${flipped ? back : front}</div><div class="meta">${card.example_sentence || ''}${card.difficulty ? ` • ${card.difficulty}` : ''}${weakScore ? ` • review priority ${weakScore}` : ''}</div>`;
+    cardEl.innerHTML = `<div>${escapeHtml(flipped ? back : front)}</div><div class="meta">${escapeHtml(card.example_sentence || '')}${card.difficulty ? ` • ${escapeHtml(card.difficulty)}` : ''}${weakScore ? ` • review priority ${weakScore}` : ''}</div>`;
     container.querySelector('#starBtn').textContent = starred ? '⭐' : '☆';
     container.querySelector('#progressPill').textContent = `Card ${idx + 1}/${sessionCards.length}${queuedReviews ? ` • ${queuedReviews} queued` : ''}`;
   };

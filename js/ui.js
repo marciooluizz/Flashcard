@@ -1,4 +1,5 @@
 import { state, persist, getActiveStudy, getActivePractice, studyCardKey } from './state.js';
+import { escapeAttr, escapeHtml } from './utils.js';
 
 function removeStudyDatabase(dbId) {
   const db = state.studyDBs.find((item) => item.id === dbId);
@@ -35,10 +36,10 @@ function removePracticeDatabase(dbId) {
 export function renderDBList() {
   const wrap = document.querySelector('#dbList');
   const study = state.studyDBs.length
-    ? state.studyDBs.map((db) => `<div class='db-item ${db.id===state.activeStudyId?'active':''}'><label><input type='checkbox' data-merge='${db.id}' ${state.selectedMergeIds.has(db.id)?'checked':''}> ${db.name} <span class='badge'>study</span></label><div class='db-actions'><button data-open-study='${db.id}'>Use</button><button data-delete-study='${db.id}'>Delete</button></div></div>`).join('')
+    ? state.studyDBs.map((db) => `<div class='db-item ${db.id===state.activeStudyId?'active':''}'><label><input type='checkbox' data-merge='${escapeAttr(db.id)}' ${state.selectedMergeIds.has(db.id)?'checked':''}> ${escapeHtml(db.name)} <span class='badge'>study</span></label><div class='db-actions'><button data-open-study='${escapeAttr(db.id)}'>Use</button><button data-delete-study='${escapeAttr(db.id)}'>Delete</button></div></div>`).join('')
     : `<div class='empty-state compact-empty'>No study databases saved.</div>`;
   const practice = state.practiceDBs.length
-    ? state.practiceDBs.map((db) => `<div class='db-item ${db.id===state.activePracticeId?'active':''}'><span>${db.name} <span class='badge'>practice</span></span><div class='db-actions'><button data-open-practice='${db.id}'>Use</button><button data-delete-practice='${db.id}'>Delete</button></div></div>`).join('')
+    ? state.practiceDBs.map((db) => `<div class='db-item ${db.id===state.activePracticeId?'active':''}'><span>${escapeHtml(db.name)} <span class='badge'>practice</span></span><div class='db-actions'><button data-open-practice='${escapeAttr(db.id)}'>Use</button><button data-delete-practice='${escapeAttr(db.id)}'>Delete</button></div></div>`).join('')
     : `<div class='empty-state compact-empty'>No practice databases saved.</div>`;
 
   wrap.innerHTML = `<h4>Study Databases</h4>${study}<h4>Practice Databases</h4>${practice}`;

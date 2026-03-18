@@ -27,9 +27,10 @@ export const state = {
     darkMode: saved.preferences?.darkMode || false,
     reverse: saved.preferences?.reverse || false,
     autoplay: saved.preferences?.autoplay || false,
-    learningLang: saved.preferences?.learningLang || 'es-ES',
-    translationLang: saved.preferences?.translationLang || 'en-US',
-    learnMode: saved.preferences?.learnMode || 'both'
+    learningLang: saved.preferences?.learningLang || 'auto',
+    translationLang: saved.preferences?.translationLang || 'auto',
+    learnMode: saved.preferences?.learnMode === 'both' ? 'mix' : (saved.preferences?.learnMode || 'mix'),
+    learnPromptType: saved.preferences?.learnPromptType || 'vocab'
   },
   filters: {
     search: saved.filters?.search || '',
@@ -99,7 +100,7 @@ export function filterStudyCards(cards = [], options = {}) {
 
   let output = cards.filter((card) => {
     if (search) {
-      const blob = `${card.term} ${card.translation} ${card.example_sentence || ''} ${(card.tags || []).join(' ')}`.toLowerCase();
+      const blob = `${card.term} ${card.translation} ${card.example_sentence || ''} ${card.example_translation || ''} ${(card.tags || []).join(' ')}`.toLowerCase();
       if (!blob.includes(search.toLowerCase())) return false;
     }
     if (difficulty && card.difficulty !== difficulty) return false;

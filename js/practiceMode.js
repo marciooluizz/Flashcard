@@ -1,5 +1,5 @@
 import { getActivePractice } from './state.js';
-import { fuzzyMatch } from './utils.js';
+import { escapeAttr, escapeHtml, fuzzyMatch } from './utils.js';
 
 export function renderPractice(container) {
   const db = getActivePractice();
@@ -29,12 +29,12 @@ export function renderPractice(container) {
 
     const items = db.questions.map((q, i) => {
       if (q.question_type === 'multiple_choice') {
-        return `<div class='question' data-id='${q.id}' data-answer='${q.correct_answer}' data-type='mc'><p>${i+1}. ${q.question}</p>${(q.choices || []).map((c) => `<label class='choice'><input type='radio' name='p${i}' value='${c}'>${c}</label>`).join('')}</div>`;
+        return `<div class='question' data-id='${escapeAttr(q.id)}' data-answer='${escapeAttr(q.correct_answer)}' data-type='mc'><p>${i+1}. ${escapeHtml(q.question)}</p>${(q.choices || []).map((c) => `<label class='choice'><input type='radio' name='p${i}' value='${escapeAttr(c)}'>${escapeHtml(c)}</label>`).join('')}</div>`;
       }
       if (q.question_type === 'true_false') {
-        return `<div class='question' data-id='${q.id}' data-answer='${q.correct_answer}' data-type='tf'><p>${i+1}. ${q.question}</p><label><input type='radio' name='p${i}' value='true'>True</label><label><input type='radio' name='p${i}' value='false'>False</label></div>`;
+        return `<div class='question' data-id='${escapeAttr(q.id)}' data-answer='${escapeAttr(q.correct_answer)}' data-type='tf'><p>${i+1}. ${escapeHtml(q.question)}</p><label><input type='radio' name='p${i}' value='true'>True</label><label><input type='radio' name='p${i}' value='false'>False</label></div>`;
       }
-      return `<div class='question' data-id='${q.id}' data-answer='${q.correct_answer || (q.acceptable_answers || [])[0] || ''}' data-acceptable='${(q.acceptable_answers||[]).join('|')}' data-type='typed'><p>${i+1}. ${q.question}</p><input type='text' name='p${i}'></div>`;
+      return `<div class='question' data-id='${escapeAttr(q.id)}' data-answer='${escapeAttr(q.correct_answer || (q.acceptable_answers || [])[0] || '')}' data-acceptable='${escapeAttr((q.acceptable_answers||[]).join('|'))}' data-type='typed'><p>${i+1}. ${escapeHtml(q.question)}</p><input type='text' name='p${i}'></div>`;
     }).join('');
 
     container.querySelector('#practiceArea').innerHTML = `<div class='badge'>Timer: <span id='timerView'>${Math.floor(seconds/60)}:${String(seconds%60).padStart(2, '0')}</span></div>${items}<button id='submitPractice'>Finish Practice Test</button><div id='practiceResult'></div>`;
@@ -64,8 +64,8 @@ export function renderPractice(container) {
       const taken = Math.round((Date.now() - start) / 1000);
       container.querySelector('#practiceResult').innerHTML = `<h3>Practice Results: ${score}/${blocks.length}</h3>
       <p>Time Taken: ${Math.floor(taken/60)}m ${taken%60}s</p>
-      <h4>Topic Breakdown</h4><ul>${Object.entries(topics).map(([k,v]) => `<li>${k}: ${v.correct}/${v.total}</li>`).join('')}</ul>
-      <h4>Incorrect Answers</h4><ul>${missed.map((m) => `<li><strong>${m.question}</strong><br>Expected: ${m.expected}<br>Your answer: ${m.your}${showExplain ? `<br>Explanation: ${m.explanation}` : ''}</li>`).join('')}</ul>`;
+      <h4>Topic Breakdown</h4><ul>${Object.entries(topics).map(([k,v]) => `<li>${escapeHtml(k)}: ${v.correct}/${v.total}</li>`).join('')}</ul>
+      <h4>Incorrect Answers</h4><ul>${missed.map((m) => `<li><strong>${escapeHtml(m.question)}</strong><br>Expected: ${escapeHtml(m.expected)}<br>Your answer: ${escapeHtml(m.your)}${showExplain ? `<br>Explanation: ${escapeHtml(m.explanation)}` : ''}</li>`).join('')}</ul>`;
       if (!showExplain && missed.length) container.querySelector('#practiceResult').innerHTML += '<p>Enable “Include explanations in results” to view rationale after each missed question.</p>';
     };
 
